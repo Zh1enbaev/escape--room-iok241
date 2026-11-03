@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Бағдарламашы квесті</title>
+<style>
+:root{
+  --bg:#07080f; --panel:#0d1020; --line:#1f2547;
+  --cyan:#00f0ff; --pink:#ff2bd6; --green:#39ff88; --red:#ff3860; --text:#c9d4ff; --dim:#6b77a8;
+  --mono:"JetBrains Mono","Fira Code",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box;margin:0}
+html,body{min-height:100%}
+body{
+  background:var(--bg);color:var(--text);font-family:var(--mono);
+  background-image:
+    linear-gradient(rgba(0,240,255,.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,240,255,.04) 1px,transparent 1px);
+  background-size:32px 32px;
+  display:flex;justify-content:center;padding:20px 14px 40px;
+}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(transparent 0 2px,rgba(0,0,0,.18) 2px 3px)}
+main{width:100%;max-width:720px}
+header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+h1{font-size:1.25rem;color:var(--cyan);text-shadow:0 0 12px rgba(0,240,255,.6);font-weight:700}
+#level-label{color:var(--pink);text-shadow:0 0 10px rgba(255,43,214,.6);font-weight:700}
+.bar{display:flex;gap:6px;margin-bottom:18px}
+.bar i{flex:1;height:6px;background:var(--line);border-radius:2px;transition:.4s}
+.bar i.done{background:var(--green);box-shadow:0 0 10px var(--green)}
+.bar i.now{background:var(--pink);box-shadow:0 0 10px var(--pink)}
+
+/* door */
+.door{position:relative;height:150px;border:1px solid var(--cyan);border-radius:6px;overflow:hidden;
+  background:#02030a;box-shadow:0 0 18px rgba(0,240,255,.25),inset 0 0 30px rgba(0,240,255,.08);margin-bottom:16px}
+.door .behind{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  color:var(--green);font-size:1.1rem;text-shadow:0 0 14px var(--green);
+  background:radial-gradient(circle at center,rgba(57,255,136,.25),transparent 70%)}
+.leaf{position:absolute;top:0;bottom:0;width:50%;background:
+  repeating-linear-gradient(135deg,#12163a 0 12px,#0d1030 12px 24px);
+  transition:transform 1s cubic-bezier(.7,0,.2,1);z-index:2}
+.leaf.l{left:0;border-right:2px solid var(--cyan)}
+.leaf.r{right:0;border-left:2px solid var(--cyan)}
+.door.open .leaf.l{transform:translateX(-101%)}
+.door.open .leaf.r{transform:translateX(101%)}
+.lock{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;
+  padding:8px 14px;border:1px solid var(--red);color:var(--red);background:#1a0610;border-radius:4px;
+  font-size:.85rem;text-shadow:0 0 8px var(--red);transition:.4s}
+.door.open .lock{opacity:0;transform:translate(-50%,-50%) scale(.6)}
+.door.shake{animation:shake .4s}
+@keyframes shake{20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+
+/* terminal */
+.term{background:var(--panel);border:1px solid var(--line);border-radius:6px}
+.term .title{padding:8px 12px;border-bottom:1px solid var(--line);color:var(--dim);font-size:.8rem}
+#mission{padding:12px 14px 0;color:var(--text);font-size:.9rem;line-height:1.5}
+pre{padding:14px;font-family:var(--mono);font-size:1rem;line-height:1.8;overflow-x:auto;color:var(--text)}
+.kw{color:var(--pink)} .fn{color:var(--cyan)} .num{color:#ffb86b} .cm{color:var(--dim)}
+.slot{display:inline-block;min-width:3.2ch;padding:0 8px;border:1px dashed var(--cyan);border-radius:4px;
+  color:var(--cyan);text-align:center;background:rgba(0,240,255,.07);
+  animation:blink 1.2s infinite}
+@keyframes blink{50%{box-shadow:0 0 10px rgba(0,240,255,.7)}}
+.slot.ok{border:1px solid var(--green);color:var(--green);background:rgba(57,255,136,.1);animation:none;text-shadow:0 0 8px var(--green)}
+.slot.bad{border:1px solid var(--red);color:var(--red);background:rgba(255,56,96,.1);animation:none}
+
+#console{min-height:64px;padding:10px 14px;border-top:1px solid var(--line);font-size:.88rem;line-height:1.5;color:var(--dim)}
+#console.err{color:var(--red);text-shadow:0 0 6px rgba(255,56,96,.5)}
+#console.ok{color:var(--green)}
+
+.keys-title{margin:18px 0 8px;color:var(--dim);font-size:.85rem}
+#keys{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.key{font-family:var(--mono);font-size:1.05rem;font-weight:700;padding:14px 8px;cursor:pointer;
+  color:var(--cyan);background:#08122a;border:1px solid var(--cyan);border-radius:6px;transition:.15s}
+.key:hover,.key:focus-visible{background:var(--cyan);color:#001018;box-shadow:0 0 16px var(--cyan);outline:none}
+.key:disabled{opacity:.4;cursor:default;pointer-events:none}
+
+/* win */
+#win{display:none;text-align:center;padding:40px 16px}
+#win h2{font-size:1.8rem;color:var(--green);text-shadow:0 0 18px var(--green);margin-bottom:12px}
+#win p{line-height:1.6;margin-bottom:22px}
+.btn{font-family:var(--mono);font-size:1rem;padding:12px 22px;cursor:pointer;color:#12001a;background:var(--pink);
+  border:0;border-radius:6px;font-weight:700;box-shadow:0 0 18px rgba(255,43,214,.6)}
+body.won #game{display:none} body.won #win{display:block}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>&gt; БАҒДАРЛАМАШЫ_КВЕСТІ</h1>
+    <span id="level-label"></span>
+  </header>
+  <div id="bar" class="bar"></div>
+
+  <section id="game">
+    <div id="door" class="door">
+      <div class="behind">ЕСІК АШЫЛДЫ</div>
+      <div class="leaf l"></div><div class="leaf r"></div>
+      <div class="lock" id="lock">ҚҰЛЫПТАУЛЫ</div>
+    </div>
+
+    <div class="term">
+      <div class="title" id="file">door_1.py</div>
+      <div id="mission"></div>
+      <pre id="code"></pre>
+      <div id="console" role="status" aria-live="polite">&gt; Кодтағы жетіспейтін кілтті таңда.</div>
+    </div>
+
+    <div class="keys-title">&gt; Кілттер:</div>
+    <div id="keys"></div>
+  </section>
+
+  <section id="win">
+    <h2>ЖЕҢІС!</h2>
+    <p>Барлық есіктер ашылды.<br>Сен коды дұрыс жазатын нағыз бағдарламашысың.</p>
+    <button class="btn" id="again">Қайта ойнау</button>
+  </section>
+</main>
+
+<script>
+const LEVELS = [
+  { mission: "Цикл синтаксисі қателесіп тұр. Жолдың соңында не жетіспейді?",
+    code: "i = 0\nwhile i < 20 §\n    print(i)\n    i += 2",
+    keys: [":", ";", "{", "do"], answer: ":",
+    err: { ";": "SyntaxError: invalid syntax. Python-да блок «;» емес, «:» арқылы ашылады.",
+           "{": "SyntaxError: invalid syntax. Python-да фигуралы жақша блок ашпайды.",
+           "do": "SyntaxError: invalid syntax. «do» — Python-да кілт сөз емес." } },
+  { mission: "Шарт орындалғанша қайталайтын дұрыс цикл кілт сөзін таңда.",
+    code: "i = 0\n§ i < 20:\n    print(i)\n    i += 2",
+    keys: ["while", "if", "for", "loop"], answer: "while",
+    err: { "if": "Логикалық қате: «if» шартты бір рет тексереді, қайталамайды. Цикл керек.",
+           "for": "SyntaxError: invalid syntax. «for i < 20:» жазылымы дұрыс емес, «for» тізбекпен жұмыс істейді.",
+           "loop": "NameError: name 'loop' is not defined. Python-да «loop» кілт сөзі жоқ." } },
+  { mission: "Санауыш әр қадамда 2-ге өсуі керек. Қандай оператор қажет?",
+    code: "i = 0\nwhile i < 20:\n    print(i)\n    i = i § 2",
+    keys: ["+", "-", "*", "=="], answer: "+",
+    err: { "-": "Қате: i азая береді, шарт «i < 20» ешқашан бұзылмайды. Шексіз цикл!",
+           "*": "Қате: 0 * 2 = 0, i өзгермейді. Шексіз цикл!",
+           "==": "SyntaxError: «i = i == 2» — бұл қадам емес, салыстыру. Қосу керек." } },
+  { mission: "Тек жұп сандарды шығарамыз. Қалдықты дұрыс салыстыр.",
+    code: "i = 0\nwhile i < 20:\n    if i % 2 § 0:\n        print(i)\n    i += 1",
+    keys: ["==", "=", "!=", ":="], answer: "==",
+    err: { "=": "SyntaxError: invalid syntax. Шартта салыстыру үшін «==» керек, «=» — меншіктеу.",
+           "!=": "Логикалық қате: «!=» тақ сандарды шығарады.",
+           ":=": "SyntaxError: «:=» шартта қалдықты салыстыра алмайды. «==» қолдан." } }
+];
+
+const KW = /\b(while|if|for|in|print)\b/g;
+const $ = id => document.getElementById(id);
+let lvl = 0, busy = false;
+
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function paint(t){
+  return esc(t).replace(/\b(\d+)\b/g,'<span class="num">$1</span>')
+    .replace(/\b(while|if|for)\b/g,'<span class="kw">$1</span>')
+    .replace(/\b(print)\b/g,'<span class="fn">$1</span>');
+}
+
+function renderBar(){
+  $("bar").innerHTML = LEVELS.map((_,i)=>`<i class="${i<lvl?"done":i===lvl?"now":""}"></i>`).join("");
+  $("level-label").textContent = `Деңгей ${Math.min(lvl+1,LEVELS.length)} / ${LEVELS.length}`;
+}
+
+function setConsole(msg, cls=""){
+  const c = $("console"); c.className = cls; c.textContent = "> " + msg;
+}
+
+function load(){
+  const L = LEVELS[lvl]; busy = false;
+  $("door").classList.remove("open","shake");
+  $("file").textContent = `door_${lvl+1}.py`;
+  $("mission").textContent = "# " + L.mission;
+  const [a,b] = L.code.split("§");
+  $("code").innerHTML = paint(a) + '<span class="slot" id="slot">?</span>' + paint(b);
+  $("keys").innerHTML = "";
+  L.keys.forEach(k=>{
+    const btn = document.createElement("button");
+    btn.className = "key"; btn.textContent = k;
+    btn.onclick = () => pick(k, btn);
+    $("keys").appendChild(btn);
+  });
+  setConsole("Кодтағы жетіспейтін кілтті таңда.");
+  renderBar();
+}
+
+function pick(k, btn){
+  if(busy) return;
+  const L = LEVELS[lvl], slot = $("slot");
+  slot.textContent = k;
+  if(k === L.answer){
+    busy = true;
+    slot.className = "slot ok";
+    setConsole("Кілт сәйкес келді. Есік ашылуда...", "ok");
+    document.querySelectorAll(".key").forEach(b=>b.disabled=true);
+    $("door").classList.add("open");
+    setTimeout(()=>{
+      lvl++;
+      if(lvl >= LEVELS.length){ renderBar(); document.body.classList.add("won"); }
+      else load();
+    }, 1800);
+  } else {
+    slot.className = "slot bad";
+    setConsole(L.err[k] || "SyntaxError: invalid syntax", "err");
+    const d = $("door"); d.classList.remove("shake"); void d.offsetWidth; d.classList.add("shake");
+    btn.disabled = true;
+  }
+}
+
+$("again").onclick = () => { lvl = 0; document.body.classList.remove("won"); load(); };
+load();
+</script>
+</body>
+</html>
